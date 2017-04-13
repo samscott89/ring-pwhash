@@ -20,6 +20,7 @@ use std::mem::size_of;
 use serialize::base64;
 use serialize::base64::{FromBase64, ToBase64};
 
+use crossbeam;
 use ring::{rand, pbkdf2, constant_time};
 
 // The salsa20/8 core function.
@@ -270,12 +271,16 @@ pub fn scrypt(password: &[u8], salt: &[u8], params: &ScryptParams, output: &mut 
     let mut b: Vec<u8> = repeat(0).take(pr128).collect();
     pbkdf2::derive(PBKDF2_PRF, 1, salt, password, b.as_mut_slice());
 
-    let mut v: Vec<u8> = repeat(0).take(nr128).collect();
-    let mut t: Vec<u8> = repeat(0).take(r128).collect();
+    crossbeam::scope(|scope| {
+        for chunk in b.as_mut_slice().chunks_mut(r128) {
+            let mut v: Vec<u8> = repeat(0).take(nr128).collect();
+            let mut t: Vec<u8> = repeat(0).take(r128).collect();
+            scope.spawn(move || {
+                scrypt_ro_mix(chunk, v.as_mut_slice(), t.as_mut_slice(), n);
+            });
+        }
+    });
 
-    for chunk in b.as_mut_slice().chunks_mut(r128) {
-        scrypt_ro_mix(chunk, v.as_mut_slice(), t.as_mut_slice(), n);
-    }
 
     pbkdf2::derive(PBKDF2_PRF, 1, &b, password, output);
 }

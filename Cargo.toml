@@ -14,6 +14,7 @@ categories  = ["authentication", "cryptography"]
 name = "ring_pwhash"
 
 [dependencies]
+crossbeam = "0.2"
 libc = "^0.2"
 rustc-serialize = "^0.3"
 ring = ">= 0.2"

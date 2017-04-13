@@ -1,3 +1,4 @@
+extern crate crossbeam;
 extern crate ring;
 extern crate libc;
 extern crate rustc_serialize as serialize;
